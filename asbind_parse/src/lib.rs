@@ -1,9 +1,11 @@
 mod definitions;
 mod parse;
 mod gen_rust;
+mod gen_as;
 
 pub use parse::parse;
 pub use gen_rust::GenRust;
+pub use gen_as::GenAs;
 
 #[cfg(test)]
 mod tests {

@@ -20,7 +20,7 @@ class User {
 
 class Message {
   id: i64 = 0;
-  chat: Chat = {id: 0};
+  chat: Chat = { id: 0 };
   from: User | null = null;
   text: string | null = null;
 }
@@ -34,5 +34,5 @@ export function processUpdate(update: Update): void {
 
 function buildReply(message: Message): string {
   let from = message.from != null ? (message.from as User).first_name : "Unknown"
-  return `Hello, ${from}, your id is ${message.chat.id}, you said ${message.text}`  
+  return `Hello, ${from}, your id is ${message.chat.id}, you said ${message.text}`
 }
