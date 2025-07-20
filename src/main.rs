@@ -35,7 +35,7 @@ fn main() -> anyhow::Result<()> {
     let alloc_func = instance.get_typed_func::<(u32, u32), u32>(&mut store, "__new")?;
 
     // Encode the input string as UTF-16, which AssemblyScript expects.
-    let input_string = "Hachathon".to_string();
+    let input_string = "Хакатон".to_string();
     let input_utf16: Vec<u16> = input_string.encode_utf16().collect();
     let input_size_bytes = (input_utf16.len() * 2) as u32;
 
