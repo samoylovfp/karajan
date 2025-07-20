@@ -74,8 +74,8 @@ mod tests {
             k.gen_rust().unwrap().trim(),
             r#"
 pub struct S1 {
-    field: i32,
-    field2: Option<S2>,
+    pub field: i32,
+    pub field2: Option<S2>,
 }"#
             .trim()
         )

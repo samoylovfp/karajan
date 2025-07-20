@@ -17,8 +17,8 @@ mod tests {
         let r = parse(
             "struct Update {
                 field: i32,
-                field2: i64,
-                field3: User?
+                field_2: i64,
+                field_3: User?
             }",
         )
         .unwrap();
@@ -34,12 +34,12 @@ mod tests {
                             optional: false
                         },
                         Field {
-                            name: "field2".into(),
+                            name: "field_2".into(),
                             r#type: crate::definitions::Type::I64,
                             optional: false
                         },
                         Field {
-                            name: "field3".into(),
+                            name: "field_3".into(),
                             r#type: crate::definitions::Type::Other("User".into()),
                             optional: true
                         }

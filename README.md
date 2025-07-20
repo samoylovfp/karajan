@@ -1,6 +1,7 @@
+## Running tst example
 # tst
 
 ```nu
-use docker_npm.nu npm
+use tst/docker_npm.nu npm
 npm run asbuild -- --exportRuntime
 ```

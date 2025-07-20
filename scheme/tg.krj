@@ -1,3 +1,16 @@
 struct Update {
-    field: i32
+    update_id: i64,
+    message: Message?
+}
+
+struct Message {
+    message_id: i64,
+    chat: Chat,
+    from: User?
+}
+
+struct User {
+    id: i64,
+    first_name: string,
+    last_name: string?
 }
