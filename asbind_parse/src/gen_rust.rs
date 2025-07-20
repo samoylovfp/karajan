@@ -46,7 +46,7 @@ impl GenWrite for Struct {
         writeln!(&mut res, "impl asbind::WhatToWrite for {} {{", self.name)?;
         writeln!(
             &mut res,
-            "    fn write(&self, mut target: impl asbind::AllocateAndWrite, mut ptr: i32) {{"
+            "    fn write(&self, target: &mut impl asbind::AllocateAndWrite, mut ptr: i32) {{"
         )?;
         writeln!(
             &mut res,
@@ -58,11 +58,11 @@ impl GenWrite for Struct {
         }}
         "#
         )?;
-        writeln!(&mut res, "    let mut offset = 0;")?;
+        writeln!(&mut res, "        let mut offset = 0;")?;
         for f in &self.fields {
             writeln!(
                 &mut res,
-                "    self.{field}.write(target, ptr + offset); offset += self.{field}.size_on_stack();",
+                "        self.{field}.write(target, ptr + offset); offset += self.{field}.size_on_stack();",
                 field = f.name
             )?;
             // match &f.r#type {
@@ -93,17 +93,17 @@ impl GenWrite for Struct {
         writeln!(
             &mut res,
             r#"
-        fn size_on_stack(&self) -> i32 {{
-            4
-        }}
+    fn size_on_stack(&self) -> i32 {{
+        4
+    }}
         "#
         )?;
         writeln!(
             &mut res,
             r#"
-        fn size_on_heap(&self) -> Option<i32> {{
-            todo!()
-        }}
+    fn size_on_heap(&self) -> Option<i32> {{
+        todo!()
+    }}
         "#
         )?;
         writeln!(&mut res, "}}")?;
