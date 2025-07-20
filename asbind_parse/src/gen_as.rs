@@ -20,14 +20,14 @@ impl GenAs for KrjFile {
 impl GenAs for Struct {
     fn gen_as(&self) -> Result<String> {
         let mut res = String::with_capacity(1024);
-        writeln!(&mut res, "class {} {{", self.name)?;
+        writeln!(&mut res, "export declare class {} {{", self.name)?;
         for f in &self.fields {
             writeln!(
                 &mut res,
                 "  {}: {} {}",
                 f.name,
                 f.r#type.gen_as()?,
-                if f.optional { " | null = null;" } else { "" }
+                if f.optional { " | null;" } else { "" }
             )?;
         }
         writeln!(&mut res, "}}")?;

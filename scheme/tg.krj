@@ -6,6 +6,7 @@ struct Update {
 struct Message {
     message_id: i64,
     chat: Chat,
+    text: string?,
     from: User?
 }
 
@@ -13,4 +14,8 @@ struct User {
     id: i64,
     first_name: string,
     last_name: string?
+}
+
+struct Chat {
+    id: i64
 }

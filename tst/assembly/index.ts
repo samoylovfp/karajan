@@ -4,7 +4,7 @@
 @external("host", "sendMessage")
 declare function sendMessage(chat_id: i64, message: string): void
 
-import { Update } from "../../gen/tg.ts";
+import { Update, Message, User } from "../../gen/tg.ts";
 
 export function processUpdate(update: Update): void {
   if (update.message) {
