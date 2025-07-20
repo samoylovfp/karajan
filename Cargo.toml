@@ -3,11 +3,17 @@ name = "karajan"
 version = "0.1.0"
 edition = "2024"
 
+build = "build.rs"
+
 [dependencies]
 wasmtime = "34.0.1"
 bytemuck = "1.23.1"
-color-eyre = "0.6.5"
 anyhow = "1.0.98"
 tokio = { version = "1.46.1", features = ["sync"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+enum-iterator = "2.1.0"
+asbind = { path = "asbind" }
+
+[build-dependencies]
+asbind_parse = { path = "asbind_parse" }

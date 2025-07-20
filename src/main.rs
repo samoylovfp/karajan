@@ -12,7 +12,9 @@ fn main() -> anyhow::Result<()> {
         .expect("Pass client path as first argument");
     let wasm_code = std::fs::read(wasm_file_name)?;
     let mut module = AscModule::from_bytes(&wasm_code)?;
-    _ = dbg!(module.call_process_updates("test".into()));
-    _ = dbg!(module.call_process_updates("".into()));
+    // module.print_functions();
+    // _ = dbg!(module.call_process_updates("test".into()));
+    // _ = dbg!(module.call_process_updates("".into()));
+    // module.call_test().unwrap();
     Ok(())
 }

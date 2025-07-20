@@ -1,0 +1,9 @@
+[package]
+name = "asbind_parse"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.98"
+asbind = { path = "../asbind" }
+winnow = "0.7.12"
