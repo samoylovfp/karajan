@@ -60,11 +60,28 @@ impl GenWrite for Struct {
         )?;
         writeln!(&mut res, "        let mut offset = 0;")?;
         for f in &self.fields {
-            writeln!(
-                &mut res,
-                "        self.{field}.write(target, ptr + offset); offset += self.{field}.size_on_stack();",
-                field = f.name
-            )?;
+            if f.optional {
+                writeln!(
+                    &mut res,
+                    r#"
+        if let Some(value) = &self.{field} {{
+            value.write(target, ptr + offset);
+        }} else {{
+            // FIXME: check if __new returns nulled memory;
+            0_i32.write(target, ptr + offset);
+        }}
+        // FIXME: should be message size on stack
+        offset += 4;
+                "#,
+                    field = f.name
+                )?;
+            } else {
+                writeln!(
+                    &mut res,
+                    "        self.{field}.write(target, ptr + offset); offset += self.{field}.size_on_stack();",
+                    field = f.name
+                )?;
+            }
             // match &f.r#type {
             //     Type::Other(s) => {
             //         writeln!(&mut res, "    let field_ptr = target.allocate(todo!());")?;

@@ -57,3 +57,17 @@ impl WhatToWrite for &str {
         Some(self.bytes().count() as i32 * 2)
     }
 }
+
+impl WhatToWrite for String {
+    fn write(&self, target: &mut impl AllocateAndWrite, ptr: i32) {
+        self.as_str().write(target, ptr);
+    }
+
+    fn size_on_stack(&self) -> i32 {
+        self.as_str().size_on_stack()
+    }
+
+    fn size_on_heap(&self) -> Option<i32> {
+        self.as_str().size_on_heap()
+    }
+}
