@@ -17,3 +17,9 @@ function buildReply(message: Message): string {
   let from = message.from != null ? (message.from as User).first_name : "Unknown"
   return `Hello, ${from}, your id is ${message.chat.id}, you said ${message.text}`
 }
+
+@external("host", "storeJSon")
+declare function storeJson(key:string, value:string): void
+
+@external("host", "readJson")
+declare function readJson(key:string): string

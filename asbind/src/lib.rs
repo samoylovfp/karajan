@@ -1,17 +1,17 @@
-pub trait AllocateAndWrite {
+pub trait Memory {
     fn allocate(&mut self, size: i32) -> i32;
     fn write(&mut self, ptr: i32, data: &[u8]);
 }
 
 pub trait WhatToWrite {
-    fn write(&self, target: &mut impl AllocateAndWrite, ptr: i32);
+    fn write(&self, target: &mut impl Memory, ptr: i32);
     /// FIXME: not on stack, but in current contiguous memory fragment
     fn size_on_stack(&self) -> i32;
     fn size_on_heap(&self) -> Option<i32>;
 }
 
 impl WhatToWrite for i32 {
-    fn write(&self, target: &mut impl AllocateAndWrite, ptr: i32) {
+    fn write(&self, target: &mut impl Memory, ptr: i32) {
         target.write(ptr, &self.to_le_bytes())
     }
 
@@ -25,7 +25,7 @@ impl WhatToWrite for i32 {
 }
 
 impl WhatToWrite for i64 {
-    fn write(&self, target: &mut impl AllocateAndWrite, ptr: i32) {
+    fn write(&self, target: &mut impl Memory, ptr: i32) {
         target.write(ptr, &self.to_le_bytes())
     }
 
@@ -39,7 +39,7 @@ impl WhatToWrite for i64 {
 }
 
 impl WhatToWrite for &str {
-    fn write(&self, target: &mut impl AllocateAndWrite, ptr: i32) {
+    fn write(&self, target: &mut impl Memory, ptr: i32) {
         let input_utf16: Vec<u16> = self.encode_utf16().collect();
         let input_size_bytes = (input_utf16.len() * 2) as i32;
 
@@ -59,7 +59,7 @@ impl WhatToWrite for &str {
 }
 
 impl WhatToWrite for String {
-    fn write(&self, target: &mut impl AllocateAndWrite, ptr: i32) {
+    fn write(&self, target: &mut impl Memory, ptr: i32) {
         self.as_str().write(target, ptr);
     }
 

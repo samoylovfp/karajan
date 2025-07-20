@@ -46,14 +46,14 @@ impl GenWrite for Struct {
         writeln!(&mut res, "impl asbind::WhatToWrite for {} {{", self.name)?;
         writeln!(
             &mut res,
-            "    fn write(&self, target: &mut impl asbind::AllocateAndWrite, mut ptr: i32) {{"
+            "    fn write(&self, memory: &mut impl asbind::Memory, mut ptr: i32) {{"
         )?;
         writeln!(
             &mut res,
             r#"
         if let Some(size_on_heap) = self.size_on_heap() {{
-            let heap_ptr = target.allocate(size_on_heap);
-            heap_ptr.write(target, ptr);
+            let heap_ptr = memory.allocate(size_on_heap);
+            heap_ptr.write(memory, ptr);
             ptr = heap_ptr;
         }}
         "#
@@ -65,10 +65,10 @@ impl GenWrite for Struct {
                     &mut res,
                     r#"
         if let Some(value) = &self.{field} {{
-            value.write(target, ptr + offset);
+            value.write(memory, ptr + offset);
         }} else {{
             // FIXME: check if __new returns nulled memory;
-            0_i32.write(target, ptr + offset);
+            0_i32.write(memory, ptr + offset);
         }}
         // FIXME: should be message size on stack
         offset += 4;
@@ -78,7 +78,7 @@ impl GenWrite for Struct {
             } else {
                 writeln!(
                     &mut res,
-                    "        self.{field}.write(target, ptr + offset); offset += self.{field}.size_on_stack();",
+                    "        self.{field}.write(memory, ptr + offset); offset += self.{field}.size_on_stack();",
                     field = f.name
                 )?;
             }

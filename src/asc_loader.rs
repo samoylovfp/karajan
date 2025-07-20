@@ -1,12 +1,15 @@
 //! Wrapper for working with assemblyscript wasm modules
 
 use anyhow::anyhow;
+use asbind::{Memory, WhatToWrite};
 use wasmtime::*;
+
+use crate::tg::Update;
 
 type Ptr = i32;
 pub struct AscModule {
     module: Module,
-    memory: Memory,
+    memory: wasmtime::Memory,
     instance: Instance,
     store: Store<ModuleData>,
     /// (length, type) -> ptr
@@ -22,6 +25,19 @@ const MEMORY_NAME: &str = "memory";
 
 // a structure to pass data to callbacks
 struct ModuleData {}
+
+impl Memory for AscModule {
+    fn allocate(&mut self, size: i32) -> i32 {
+        let ptr = self.alloc_func.call(&mut self.store, (size, 0)).unwrap();
+        self.pin_func.call(&mut self.store, ptr).unwrap()
+    }
+
+    fn write(&mut self, ptr: i32, data: &[u8]) {
+        self.memory
+            .write(&mut self.store, ptr as usize, data)
+            .unwrap()
+    }
+}
 
 impl AscModule {
     pub fn from_bytes(bytes: &[u8]) -> anyhow::Result<AscModule> {
@@ -91,30 +107,38 @@ impl AscModule {
         })
     }
 
-    pub fn call_process_updates(&mut self, update: String) -> anyhow::Result<()> {
-        // Encode the input string as UTF-16, which AssemblyScript expects.
-
-        let input_utf16: Vec<u16> = update.encode_utf16().collect();
-        let input_size_bytes = (input_utf16.len() * 2) as i32;
-
-        // Allocate memory in the guest for the input string.
-
-        let input_ptr = self
+    pub fn call_process_updates(&mut self, update: Update) -> anyhow::Result<()> {
+        let ptr = self
             .alloc_func
-            .call(&mut self.store, (input_size_bytes, 0))?;
+            .call(&mut self.store, (update.size_on_heap().unwrap(), 0))?;
+        update.write(self, ptr);
 
-        let input_ptr_pinned = self.pin_func.call(&mut self.store, (input_ptr))?;
+        self.process_update_func.call(&mut self.store, ptr).unwrap();
+        // // Encode the input string as UTF-16, which AssemblyScript expects.
 
-        // Write the UTF-16 bytes into the guest's memory.
-        self.memory.write(
-            &mut self.store,
-            input_ptr_pinned as usize,
-            bytemuck::cast_slice(&input_utf16),
-        )?;
+        // let input_utf16: Vec<u16> = update.encode_utf16().collect();
+        // let input_size_bytes = (input_utf16.len() * 2) as i32;
 
-        // do the call
-        let result = self.process_update_func.call(&mut self.store, input_ptr)?;
-        self.unpin_func.call(&mut self.store, input_ptr_pinned)?;
+        // // Allocate memory in the guest for the input string.
+
+        // let input_ptr = self
+        //     .alloc_func
+        //     .call(&mut self.store, (input_size_bytes, 0))?;
+
+        // let input_ptr_pinned = self.pin_func.call(&mut self.store, (input_ptr))?;
+
+        // // Write the UTF-16 bytes into the guest's memory.
+        // self.memory.write(
+        //     &mut self.store,
+        //     input_ptr_pinned as usize,
+        //     bytemuck::cast_slice(&input_utf16),
+        // )?;
+
+        // update.write(&mut self, ptr);
+
+        // // do the call
+        // let result = self.process_update_func.call(&mut self.store, input_ptr)?;
+        // self.unpin_func.call(&mut self.store, input_ptr_pinned)?;
 
         Ok(())
 
@@ -151,13 +175,13 @@ impl AscModule {
 //     Ok(())
 // }
 
-fn read_i32(memory: &Memory, context: impl AsContext, ptr: i32) -> i32 {
+fn read_i32(memory: &wasmtime::Memory, context: impl AsContext, ptr: i32) -> i32 {
     let mut val_buf = [0; 4];
     memory.read(&context, ptr as usize, &mut val_buf).unwrap();
     i32::from_le_bytes(val_buf)
 }
 
-fn read_asc_string(memory: &Memory, mut context: impl AsContext, ptr: i32) -> String {
+fn read_asc_string(memory: &wasmtime::Memory, mut context: impl AsContext, ptr: i32) -> String {
     let length = read_i32(memory, &mut context, ptr - 4);
 
     let mut result_buf = vec![0; (length) as usize];
