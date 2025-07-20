@@ -1,9 +1,9 @@
-use std::path::Path;
-
 mod definitions;
 mod parse;
+mod gen_rust;
 
 pub use parse::parse;
+pub use gen_rust::GenRust;
 
 #[cfg(test)]
 mod tests {

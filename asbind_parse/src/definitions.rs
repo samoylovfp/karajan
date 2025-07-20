@@ -26,12 +26,3 @@ pub enum Type {
     I32,
     I64,
 }
-
-impl KrjFile {
-    pub fn gen_rust(&self) -> anyhow::Result<String> {
-        let mut res = String::with_capacity(1024);
-        write!(&mut res, "/// Auto-generated")?;
-        
-        Ok(res)
-    }
-}

@@ -6,4 +6,5 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.98"
 asbind = { path = "../asbind" }
+itertools = "0.14.0"
 winnow = "0.7.12"
