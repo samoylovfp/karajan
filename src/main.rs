@@ -49,7 +49,7 @@ fn main() -> anyhow::Result<()> {
 
     let func = instance
         .get_typed_func::<u32, u32>(&mut store, "processUpdate").unwrap();
-    let result = func.call(&mut store, (input_ptr)).unwrap();
+    let result = func.call(&mut store, input_ptr).unwrap();
 
     // --- 3. READ the result string FROM the guest ---
 
