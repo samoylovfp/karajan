@@ -47,6 +47,9 @@ checksum = "dde20b3d026af13f561bdd0f15edf01fc734f0dafcedbaf42bba506a9517f223"
 [[package]]
 name = "asbind"
 version = "0.1.0"
+dependencies = [
+ "bytemuck",
+]
 
 [[package]]
 name = "asbind_parse"

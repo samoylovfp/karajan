@@ -6,3 +6,4 @@ edition = "2024"
 [lib]
 
 [dependencies]
+bytemuck = "1.23.1"
