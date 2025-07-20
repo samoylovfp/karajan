@@ -1,6 +1,8 @@
 // The entry file of your WebAssembly module.
 
 export function processUpdate(p: string): string {
-  throw new Error("OOPS")
-  return `Hi ${p}: oeu`
+  if (p.length == 0) {
+    throw new Error("Hello");
+  }
+  return `Hi ${p}: 123`
 }
