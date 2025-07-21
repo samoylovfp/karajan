@@ -4,6 +4,8 @@ use anyhow::{anyhow, bail};
 use asbind::{Memory, WhatToWrite};
 use wasmtime::*;
 
+use crate::tg::send_msg;
+
 type Ptr = i32;
 
 #[expect(dead_code)]
@@ -41,8 +43,10 @@ impl Memory for AscModule {
 }
 
 impl AscModule {
-    pub fn from_bytes(bytes: &[u8]) -> anyhow::Result<AscModule> {
-        let engine = Engine::default();
+    pub async fn from_bytes(bytes: &[u8]) -> anyhow::Result<AscModule> {
+        let mut config = Config::new();
+        config.async_support(true);
+        let engine = Engine::new(&config)?;
         let module = Module::new(&engine, bytes)?;
         let memory = module
             .get_export_index(MEMORY_NAME)
@@ -72,12 +76,18 @@ impl AscModule {
             },
         )?;
 
-        linker.func_wrap(
+        linker.func_wrap_async(
             "host",
             "sendMessage",
-            move |caller: Caller<'_, ModuleData>, chat_id: i64, message: i32| -> () {
-                let message = read_asc_string_from_caller(caller, memory, message).unwrap();
-                println!("Send message called with {chat_id:?}: {message}")
+            move |caller: Caller<'_, ModuleData>, (chat_id, msg_ptr): (i64, i32)| {
+                let message = read_asc_string_from_caller(caller, memory, msg_ptr).unwrap();
+                Box::new(async move {
+                    // FIXME: how to separate out provided functions?
+                    let tg_key = std::env::var("TG_KEY").unwrap();
+                    send_msg(&reqwest::Client::new(), &tg_key, chat_id, message)
+                        .await
+                        .inspect_err(|e| tracing::error!(?e, "sending response"))
+                })
             },
         )?;
 
@@ -95,7 +105,7 @@ impl AscModule {
         // Instantiation of a module requires specifying its imports and then
         // afterwards we can fetch exports by name, as well as asserting the
         // type signature of the function with `get_typed_func`.
-        let instance = linker.instantiate(&mut store, &module)?;
+        let instance = linker.instantiate_async(&mut store, &module).await?;
 
         // Get the guest's allocation function.
         let alloc_func = instance.get_typed_func(&mut store, "__new")?;
@@ -118,13 +128,19 @@ impl AscModule {
         })
     }
 
-    pub fn call_process_updates(&mut self, update: String) -> anyhow::Result<()> {
-        let ptr = self.alloc_func.call(&mut self.store, (update.size(), 0))?;
-        let ptr = self.pin_func.call(&mut self.store, ptr).unwrap();
+    pub async fn call_process_updates(&mut self, update: String) -> anyhow::Result<()> {
+        let ptr = self
+            .alloc_func
+            .call_async(&mut self.store, (update.size(), 0))
+            .await?;
+        let ptr = self.pin_func.call_async(&mut self.store, ptr).await?;
         update.write(self, ptr);
 
-        let res = self.process_update_func.call(&mut self.store, ptr);
-        self.unpin_func.call(&mut self.store, ptr)?;
+        let res = self
+            .process_update_func
+            .call_async(&mut self.store, ptr)
+            .await;
+        self.unpin_func.call_async(&mut self.store, ptr).await?;
         res
     }
 }

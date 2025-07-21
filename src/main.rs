@@ -1,4 +1,4 @@
-use karajan::asc_loader::AscModule;
+use karajan::{asc_loader::AscModule, tg};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
 fn main() -> anyhow::Result<()> {
@@ -10,23 +10,16 @@ fn main() -> anyhow::Result<()> {
     let wasm_file_name = std::env::args()
         .nth(1)
         .expect("Pass client path as first argument");
+    let tg_key = std::env::var("TG_KEY").expect("TG_KEY should contain telegram key");
     let wasm_code = std::fs::read(wasm_file_name)?;
-    let mut module = AscModule::from_bytes(&wasm_code)?;
-    module.call_process_updates(
-        r#"{
-        "update_id": 123,
-        "message": {
-            "message_id": 456,
-            "chat": { "id": 870 },
-            "text": "hello",
-            "from": {"id": 870, "first_name": "jack"}
-        }
-    }"#
-        .into(),
-    )?;
-    // module.print_functions();
-    // _ = dbg!(module.call_process_updates("test".into()));
-    // _ = dbg!(module.call_process_updates("".into()));
-    // module.call_test().unwrap();
+
+    tokio::runtime::Runtime::new()
+        .unwrap()
+        .block_on(async move {
+            let module = AscModule::from_bytes(&wasm_code).await.unwrap();
+
+            tg::serve(module, tg_key).await
+        });
+
     Ok(())
 }
