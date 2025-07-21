@@ -6,65 +6,38 @@ pub trait Memory {
 pub trait WhatToWrite {
     /// write the contents
     fn write(&self, target: &mut impl Memory, ptr: i32);
-    /// FIXME: not on stack, but in current contiguous memory fragment
-    fn size_on_stack(&self) -> i32;
-    fn size_on_heap(&self) -> Option<i32>;
+    /// size of the target payload
+    fn size(&self) -> i32;
 }
 
 impl WhatToWrite for i32 {
-    fn write(&self, target: &mut impl Memory, ptr: i32) {
-        target.write(ptr, &self.to_le_bytes())
+    fn write(&self, memory: &mut impl Memory, ptr: i32) {
+        memory.write(ptr, &self.to_le_bytes())
     }
 
-    fn size_on_stack(&self) -> i32 {
+    fn size(&self) -> i32 {
         4
-    }
-
-    fn size_on_heap(&self) -> Option<i32> {
-        None
     }
 }
 
 impl WhatToWrite for i64 {
-    fn write(&self, target: &mut impl Memory, ptr: i32) {
-        target.write(ptr, &self.to_le_bytes())
+    fn write(&self, memory: &mut impl Memory, ptr: i32) {
+        memory.write(ptr, &self.to_le_bytes())
     }
 
-    fn size_on_stack(&self) -> i32 {
+    fn size(&self) -> i32 {
         8
-    }
-
-    fn size_on_heap(&self) -> Option<i32> {
-        None
-    }
-}
-
-impl WhatToWrite for &str {
-    fn write(&self, target: &mut impl Memory, ptr: i32) {
-        let input_utf16: Vec<u16> = self.encode_utf16().collect();
-        target.write(ptr, bytemuck::cast_slice(&input_utf16));
-    }
-
-    fn size_on_stack(&self) -> i32 {
-        let input_utf16: Vec<u16> = self.encode_utf16().collect();
-        (input_utf16.len() * 2) as i32
-    }
-
-    fn size_on_heap(&self) -> Option<i32> {
-        Some(self.bytes().count() as i32 * 2)
     }
 }
 
 impl WhatToWrite for String {
-    fn write(&self, target: &mut impl Memory, ptr: i32) {
-        self.as_str().write(target, ptr);
+    fn write(&self, memory: &mut impl Memory, ptr: i32) {
+        let input_utf16: Vec<u16> = self.encode_utf16().collect();
+        memory.write(ptr, bytemuck::cast_slice(&input_utf16));
     }
 
-    fn size_on_stack(&self) -> i32 {
-        self.as_str().size_on_stack()
-    }
-
-    fn size_on_heap(&self) -> Option<i32> {
-        self.as_str().size_on_heap()
+    fn size(&self) -> i32 {
+        let input_utf16: Vec<u16> = self.encode_utf16().collect();
+        (input_utf16.len() * 2) as i32
     }
 }

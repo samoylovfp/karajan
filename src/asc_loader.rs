@@ -5,6 +5,8 @@ use asbind::{Memory, WhatToWrite};
 use wasmtime::*;
 
 type Ptr = i32;
+
+#[expect(dead_code)]
 pub struct AscModule {
     module: Module,
     memory: wasmtime::Memory,
@@ -14,7 +16,6 @@ pub struct AscModule {
     alloc_func: TypedFunc<(i32, i32), Ptr>,
     pin_func: TypedFunc<Ptr, Ptr>,
     unpin_func: TypedFunc<Ptr, ()>,
-    // FIXME:
     process_update_func: TypedFunc<Ptr, ()>,
 }
 
@@ -22,7 +23,9 @@ pub struct AscModule {
 const MEMORY_NAME: &str = "memory";
 
 // a structure to pass data to callbacks
-struct ModuleData {}
+struct ModuleData {
+    limits: StoreLimits,
+}
 
 impl Memory for AscModule {
     fn allocate(&mut self, size: i32) -> i32 {
@@ -73,12 +76,21 @@ impl AscModule {
             "host",
             "sendMessage",
             move |caller: Caller<'_, ModuleData>, chat_id: i64, message: i32| -> () {
-                let message = get_str_from_caller(caller, memory, message).unwrap();
+                let message = read_asc_string_from_caller(caller, memory, message).unwrap();
                 println!("Send message called with {chat_id:?}: {message}")
             },
         )?;
 
-        let mut store: Store<ModuleData> = Store::new(&engine, ModuleData {});
+        let mut store: Store<ModuleData> = Store::new(
+            &engine,
+            ModuleData {
+                limits: StoreLimitsBuilder::new()
+                    .memory_size(1 << 20 /* 1 MB */)
+                    .instances(1)
+                    .build(),
+            },
+        );
+        store.limiter(|data| &mut data.limits);
 
         // Instantiation of a module requires specifying its imports and then
         // afterwards we can fetch exports by name, as well as asserting the
@@ -107,73 +119,15 @@ impl AscModule {
     }
 
     pub fn call_process_updates(&mut self, update: String) -> anyhow::Result<()> {
-        let ptr = self
-            .alloc_func
-            .call(&mut self.store, (update.size_on_heap().unwrap(), 0))?;
+        let ptr = self.alloc_func.call(&mut self.store, (update.size(), 0))?;
         let ptr = self.pin_func.call(&mut self.store, ptr).unwrap();
         update.write(self, ptr);
 
-        self.process_update_func.call(&mut self.store, ptr).unwrap();
-        // // Encode the input string as UTF-16, which AssemblyScript expects.
-
-        // let input_utf16: Vec<u16> = update.encode_utf16().collect();
-        // let input_size_bytes = (input_utf16.len() * 2) as i32;
-
-        // // Allocate memory in the guest for the input string.
-
-        // let input_ptr = self
-        //     .alloc_func
-        //     .call(&mut self.store, (input_size_bytes, 0))?;
-
-        // let input_ptr_pinned = self.pin_func.call(&mut self.store, (input_ptr))?;
-
-        // // Write the UTF-16 bytes into the guest's memory.
-        // self.memory.write(
-        //     &mut self.store,
-        //     input_ptr_pinned as usize,
-        //     bytemuck::cast_slice(&input_utf16),
-        // )?;
-
-        // update.write(&mut self, ptr);
-
-        // // do the call
-        // let result = self.process_update_func.call(&mut self.store, input_ptr)?;
-        // self.unpin_func.call(&mut self.store, input_ptr_pinned)?;
-
-        Ok(())
-
-        // Ok(read_asc_string(&self.memory, &mut self.store, result))
+        let res = self.process_update_func.call(&mut self.store, ptr);
+        self.unpin_func.call(&mut self.store, ptr)?;
+        res
     }
 }
-
-// fn read_type_info(
-//     memory: Memory,
-//     instance: &Instance,
-//     store: &mut Store<ModuleData>,
-// ) -> anyhow::Result<()> {
-//     let rtti = instance
-//         .get_global(&mut *store, "__rtti_base")
-//         .ok_or(anyhow!("No rtti base"))?;
-//     let rtti = match rtti.get(&mut *store) {
-//         Val::I32(rtti) => rtti,
-//         _ => bail!("Rtti is not i32"),
-//     };
-//     let count = read_i32(&memory, &mut *store, rtti);
-
-//     for offset in 1..=count {
-//         println!("rtti {}", offset - 1);
-//         let data = read_i32(&memory, &mut *store, rtti + offset * 4);
-//         println!("{data::>32b}");
-//         for flag in enum_iterator::all::<RttiFlags>() {
-//             let flag_i32 = flag as i32;
-//             if (flag_i32 & data) != 0 {
-//                 println!("{flag:?}")
-//             }
-//         }
-//     }
-
-//     Ok(())
-// }
 
 fn read_i32(memory: &wasmtime::Memory, context: impl AsContext, ptr: i32) -> i32 {
     let mut val_buf = [0; 4];
@@ -196,7 +150,7 @@ fn read_asc_string(memory: &wasmtime::Memory, mut context: impl AsContext, ptr: 
     return String::from_utf16(&result_u16).unwrap();
 }
 
-fn get_str_from_caller(
+fn read_asc_string_from_caller(
     mut caller: Caller<'_, ModuleData>,
     memory: ModuleExport,
     message_ptr: i32,
