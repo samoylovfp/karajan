@@ -11,7 +11,8 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "assemblyscript": "^0.28.3"
+    "assemblyscript": "^0.28.3",
+    "json-as": "^1.1.20"
   },
   "exports": {
     ".": {

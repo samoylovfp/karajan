@@ -4,6 +4,7 @@ pub trait Memory {
 }
 
 pub trait WhatToWrite {
+    /// write the contents
     fn write(&self, target: &mut impl Memory, ptr: i32);
     /// FIXME: not on stack, but in current contiguous memory fragment
     fn size_on_stack(&self) -> i32;
@@ -41,11 +42,7 @@ impl WhatToWrite for i64 {
 impl WhatToWrite for &str {
     fn write(&self, target: &mut impl Memory, ptr: i32) {
         let input_utf16: Vec<u16> = self.encode_utf16().collect();
-        let input_size_bytes = (input_utf16.len() * 2) as i32;
-
-        let str_ptr = target.allocate(input_size_bytes);
-        target.write(str_ptr, bytemuck::cast_slice(&input_utf16));
-        target.write(ptr, &str_ptr.to_le_bytes());
+        target.write(ptr, bytemuck::cast_slice(&input_utf16));
     }
 
     fn size_on_stack(&self) -> i32 {

@@ -1,10 +1,8 @@
 //! Wrapper for working with assemblyscript wasm modules
 
-use anyhow::anyhow;
+use anyhow::{anyhow, bail};
 use asbind::{Memory, WhatToWrite};
 use wasmtime::*;
-
-use crate::tg::Update;
 
 type Ptr = i32;
 pub struct AscModule {
@@ -65,7 +63,7 @@ impl AscModule {
                   line: i32,
                   col: i32| {
                 let err = generate_err(caller, memory, message_ptr, filename_ptr, line, col);
-                if let Err(e) = err_sender.try_send(err) {
+                if let Err(e) = err_sender.try_send(dbg!(err)) {
                     tracing::error!(?e, "sending error to author pipe");
                 }
             },
@@ -75,7 +73,8 @@ impl AscModule {
             "host",
             "sendMessage",
             move |caller: Caller<'_, ModuleData>, chat_id: i64, message: i32| -> () {
-                println!("Send message called with {chat_id:?}")
+                let message = get_str_from_caller(caller, memory, message).unwrap();
+                println!("Send message called with {chat_id:?}: {message}")
             },
         )?;
 
@@ -107,10 +106,11 @@ impl AscModule {
         })
     }
 
-    pub fn call_process_updates(&mut self, update: Update) -> anyhow::Result<()> {
+    pub fn call_process_updates(&mut self, update: String) -> anyhow::Result<()> {
         let ptr = self
             .alloc_func
             .call(&mut self.store, (update.size_on_heap().unwrap(), 0))?;
+        let ptr = self.pin_func.call(&mut self.store, ptr).unwrap();
         update.write(self, ptr);
 
         self.process_update_func.call(&mut self.store, ptr).unwrap();
@@ -194,6 +194,21 @@ fn read_asc_string(memory: &wasmtime::Memory, mut context: impl AsContext, ptr: 
         .map(|w| u16::from_le_bytes(w.try_into().unwrap()))
         .collect::<Vec<_>>();
     return String::from_utf16(&result_u16).unwrap();
+}
+
+fn get_str_from_caller(
+    mut caller: Caller<'_, ModuleData>,
+    memory: ModuleExport,
+    message_ptr: i32,
+) -> anyhow::Result<String> {
+    let mem = caller.get_module_export(&memory).unwrap();
+    let mem = match mem {
+        Extern::Memory(mem) => mem,
+        o => {
+            bail!("Expected to have a memory under 'memory' name, got {o:?}");
+        }
+    };
+    Ok(read_asc_string(&mem, &mut caller, message_ptr))
 }
 
 fn generate_err(
