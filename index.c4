@@ -1,6 +1,7 @@
 specification {
     color wasm_import #52372a
     color wasm_export #2B2266
+    color telegram #00B5FF
 
     tag todo
 
@@ -42,6 +43,10 @@ specification {
     relationship function_call {
         line solid
         color green
+    }
+    relationship via_telegram {
+        color telegram
+        line dotted
     }
 }
 
@@ -113,10 +118,10 @@ model {
     }
 
     user bot_author 'Bot Author'
-    bot_author -> karajan_bot 'Please host my bot'
+    bot_author -[via_telegram]-> karajan_bot 'Please host my bot'
 
     user bot_user 'Bot User'
-    bot_user -> client_bot 'I am using someone\'s bot'
+    bot_user -[via_telegram]-> client_bot 'I am using someone\'s bot'
 
 }
 
@@ -132,17 +137,18 @@ views {
             include client_bot
         }
         group 'internet' {
+            include bot_user
             include telegram_bot_api
         }
 
     }
 
-    view users {
+    view users of bot_user {
         include karajan, bot_author, bot_user, client_bot
     }
 
     view of karajan {
-        include *, karajan.bot_manager.*
+        include *, karajan.bot_manager.*, bot_user
     }
 
     view of client_bot {
