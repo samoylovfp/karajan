@@ -1,0 +1,154 @@
+specification {
+    color wasm_import #52372a
+    color wasm_export #2B2266
+
+    tag todo
+
+
+    element system
+
+    element wasm_module {
+        style {
+            icon: tech:webassembly
+        }
+    }
+    element wasm_import {
+        style {
+            color: wasm_import
+        }
+    }
+    element wasm_export {
+        style {
+            color: wasm_export
+        }
+    }
+
+    element component
+
+    element user {
+        style {
+            shape person
+        }
+    }
+
+    relationship wasm_call {
+        head onormal
+        color indigo
+    }
+    relationship https {
+        line dotted
+        color blue
+    }
+    relationship function_call {
+        line solid
+        color green
+    }
+}
+
+model {
+    telegram_bot_api = system 'Telegram Bot Api'
+    karajan = system 'Karajan' {
+        style {
+            icon: tech:rust
+            color: amber
+        }
+
+        description 'Hosts client wasm payloads as telegram bots'
+
+        component bot_manager 'Bot Manager' {
+
+            component asc_module {
+                title 'AssemblyScript Executor'
+                description '
+                    Uses Wasmtime to enterpret WASM.
+
+                    Handles AssemblyScript specific
+                    parts, allocating memory, encoding strings, etc.
+                '
+                this -[wasm_call]-> client_bot.__new 'Allocates memory for update'
+                this -[function_call]-> client_bot.memory 'Writes update data'
+                this -[wasm_call]-> client_bot.processUpdate 'Calls'
+            }
+
+            component telegram_client 'Telegram Bot API client' {
+                style {
+                    size: large
+                }
+
+                description '
+                    Gets updates.
+                    Parses them to get `update_id` poll next updates.
+                    Passes the encoded json payload further.
+                '
+                telegram_bot_api -[https]-> this 'Responds with Update'
+                this -[function_call]-> karajan.asc_module 'Calls with Update'
+                karajan.asc_module -[function_call]-> this 'Requests to send message'
+                this -[https]-> telegram_bot_api 'Request updates for all bots'
+            }
+        }
+
+        component karajan_bot 'Karajan bot' {
+            #todo
+            description 'Telegram bot that receives WASM payloads and keys from users'
+            telegram_bot_api -[https]-> this 'Message with new WASM file and keys'
+            this -[function_call]-> bot_manager.asc_module 'Create new or Update bot code'
+
+
+        }
+
+    }
+
+    wasm_module client_bot 'Client Bot' {
+        style {
+            multiple: true
+        }
+
+        description 'Written in AssemblyScript, provides `processUpdate`'
+        wasm_export processUpdate
+        wasm_export __new
+        wasm_export memory
+        wasm_import sendMessage
+
+        this.sendMessage -[wasm_call]-> karajan.asc_module 'Sends messages'
+    }
+
+    user bot_author 'Bot Author'
+    bot_author -> karajan_bot 'Please host my bot'
+
+    user bot_user 'Bot User'
+    bot_user -> client_bot 'I am using someone\'s bot'
+
+}
+
+views {
+    view index {
+        group 'We host' {
+            include
+                bot_manager -> client_bot with {
+                    title 'call process updates'
+                }
+
+            include karajan, karajan.*
+            include client_bot
+        }
+        group 'internet' {
+            include telegram_bot_api
+        }
+
+    }
+
+    view users {
+        include karajan, bot_author, bot_user, client_bot
+    }
+
+    view of karajan {
+        include *, karajan.bot_manager.*
+    }
+
+    view of client_bot {
+        include *, karajan.asc_module,, karajan.telegram_client, telegram_bot_api
+        // include karajan.asc_module
+        // include karajan.asc_module -> *
+        // include telegram_bot_api 
+    }
+}
