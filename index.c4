@@ -53,7 +53,7 @@ specification {
 model {
     telegram_bot_api = system 'Telegram Bot Api' {
         style {
-            color: telegram 
+            color: telegram
         }
         link https://core.telegram.org/bots/api
     }
@@ -156,9 +156,6 @@ views {
     }
 
     view of client_bot {
-        include *, karajan.asc_module,, karajan.telegram_client, telegram_bot_api
-        // include karajan.asc_module
-        // include karajan.asc_module -> *
-        // include telegram_bot_api 
+        include *, karajan.asc_module, karajan.telegram_client, telegram_bot_api
     }
 }
