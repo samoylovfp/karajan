@@ -26,9 +26,10 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
-      - uses: likec4/actions@60810dea75e42c0c0c48069975e2c30b306bcd35
-        with:
-          action: build
+      - uses: oven-sh/setup-bun@v2
+      - name: build
+        run: |
+          bunx likec4@1.34.2 build
       - name: Upload static files as artifact
         id: deployment
         uses: actions/upload-pages-artifact@v3 # or specific "vX.X.X" version tag for this action
