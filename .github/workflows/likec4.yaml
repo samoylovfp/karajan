@@ -27,13 +27,11 @@ jobs:
       - uses: likec4/actions@60810dea75e42c0c0c48069975e2c30b306bcd35
         with:
           action: build
-      - run: |
-         tar -czvf pages.tar.gz dist
       - name: Upload static files as artifact
         id: deployment
         uses: actions/upload-pages-artifact@v3 # or specific "vX.X.X" version tag for this action
         with:
-          path: pages.tar.gz
+          path: dist/
   deploy:
     environment:
       name: github-pages
