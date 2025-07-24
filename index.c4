@@ -87,7 +87,7 @@ model {
 
                 description '
                     Gets updates.
-                    Parses them to get `update_id` poll next updates.
+                    Parses them to get `update_id` to poll next updates.
                     Passes the encoded json payload further.
                 '
                 telegram_bot_api -[https]-> this 'Responds with Update'
